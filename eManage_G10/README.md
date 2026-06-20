@@ -38,7 +38,7 @@ npm install
 ### Bước 2: Chạy backend (Terminal 1)
 ```bash
 cd backend
-./mvnw spring-boot:run
+
 # Windows:  mvnw.cmd spring-boot:run
 
 # Server chạy tại: http://localhost:3001

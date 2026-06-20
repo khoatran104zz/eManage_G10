@@ -4,6 +4,7 @@ import { Plus, Edit2, Trash2, Package } from 'lucide-react';
 import { productsApi, categoriesApi, brandsApi } from '../services/api';
 import { formatCurrency } from '../utils/format';
 import { PageHeader, SearchBar, Table, Pagination, Modal, Loading, EmptyState, FormField, ConfirmDialog, toast } from '../components/shared';
+import Permission from '../components/Permission';
 
 function ProductForm({ product, categories, brands, onSave, onClose }) {
   const [form, setForm] = useState({
@@ -122,9 +123,11 @@ export default function Products() {
         actions={
           <>
             <SearchBar value={search} onChange={setSearch} placeholder="Tìm theo tên, SKU..." />
-            <button className="btn btn-primary text-sm" onClick={() => setModal('create')}>
-              <Plus size={16} /> Thêm sản phẩm
-            </button>
+            <Permission roles={['ADMIN', 'BRANCH_MANAGER']}>
+              <button className="btn btn-primary text-sm" onClick={() => setModal('create')}>
+                <Plus size={16} /> Thêm sản phẩm
+              </button>
+            </Permission>
           </>
         }
       />
@@ -158,12 +161,16 @@ export default function Products() {
                   </td>
                   <td className="px-4 py-3 text-right">
                     <div className="flex justify-end gap-1">
-                      <button className="p-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-primary-600" onClick={() => setModal(p)}>
-                        <Edit2 size={14} />
-                      </button>
-                      <button className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500" onClick={() => setDeleteTarget(p)}>
-                        <Trash2 size={14} />
-                      </button>
+                      <Permission roles={['ADMIN', 'BRANCH_MANAGER']}>
+                        <button className="p-1.5 rounded-lg hover:bg-primary-50 dark:hover:bg-primary-900/20 text-primary-600" onClick={() => setModal(p)}>
+                          <Edit2 size={14} />
+                        </button>
+                      </Permission>
+                      <Permission roles={['ADMIN', 'BRANCH_MANAGER']}>
+                        <button className="p-1.5 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500" onClick={() => setDeleteTarget(p)}>
+                          <Trash2 size={14} />
+                        </button>
+                      </Permission>
                     </div>
                   </td>
                 </tr>

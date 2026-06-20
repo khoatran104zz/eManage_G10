@@ -1,6 +1,7 @@
 // components/shared/index.jsx — eManage redesign
 import { useState } from 'react';
-import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Search, CheckCircle2 } from 'lucide-react';
+import { X, ChevronLeft, ChevronRight, Loader2, AlertCircle, Search, CheckCircle2, User, Lock, Eye, EyeOff } from 'lucide-react';
+
 
 /* ── Modal ──────────────────────────────────────────── */
 export function Modal({ open, onClose, title, children, size = 'md' }) {
@@ -260,3 +261,102 @@ export function ToastContainer() {
     </div>
   );
 }
+
+/* ── Auth Layout ─────────────────────────────────────── */
+export function AuthLayout({ children }) {
+  return (
+    <div className="min-h-screen w-full flex flex-col items-center justify-center bg-gradient-to-tr from-surface-50 to-primary-50 dark:from-gray-950 dark:to-gray-900/40 p-4 transition-colors duration-300">
+      <div className="w-full max-w-[420px] animate-fadeIn">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+/* ── Auth Card ───────────────────────────────────────── */
+export function AuthCard({ children }) {
+  return (
+    <div className="card p-8 md:p-10 shadow-card rounded-2xl bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800/80 transition-colors duration-300">
+      {children}
+    </div>
+  );
+}
+
+/* ── Password Input ──────────────────────────────────── */
+export function PasswordInput({ value, onChange, placeholder = 'Mật khẩu', error, ...props }) {
+  const [show, setShow] = useState(false);
+  return (
+    <div className="relative">
+      <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500">
+        <Lock size={16} />
+      </span>
+      <input
+        type={show ? 'text' : 'password'}
+        className={`input pl-10 pr-10 ${error ? 'border-red-500 focus:border-red-500 focus:ring-red-500/20' : ''}`}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        {...props}
+      />
+      <button
+        type="button"
+        onClick={() => setShow(!show)}
+        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 p-1 rounded-lg"
+      >
+        {show ? <EyeOff size={16} /> : <Eye size={16} />}
+      </button>
+    </div>
+  );
+}
+
+/* ── Account Card ────────────────────────────────────── */
+export function AccountCard({ title, icon: Icon, children, className = '' }) {
+  return (
+    <div className={`card p-6 ${className}`}>
+      {title && (
+        <div className="flex items-center gap-3 mb-5 border-b border-gray-100 dark:border-gray-800/50 pb-4">
+          {Icon && (
+            <div className="w-8 h-8 bg-primary-50 dark:bg-primary-900/20 rounded-xl flex items-center justify-center shrink-0">
+              <Icon size={16} className="text-primary-600 dark:text-primary-400" />
+            </div>
+          )}
+          <h2 className="font-bold text-gray-900 dark:text-white text-base tracking-tight">{title}</h2>
+        </div>
+      )}
+      <div>{children}</div>
+    </div>
+  );
+}
+
+/* ── Profile Avatar ──────────────────────────────────── */
+export function ProfileAvatar({ name, role }) {
+  const initials = name
+    ? name
+        .trim()
+        .split(' ')
+        .filter(Boolean)
+        .slice(-2)
+        .map(p => p.charAt(0))
+        .join('')
+        .toUpperCase()
+    : '';
+
+  return (
+    <div className="flex items-center gap-4">
+      <div className="w-16 h-16 rounded-full bg-primary-50 dark:bg-primary-900/20 flex items-center justify-center border border-primary-100 dark:border-primary-900/40 shrink-0">
+        {initials ? (
+          <span className="text-lg font-extrabold text-primary-600 dark:text-primary-400">{initials}</span>
+        ) : (
+          <User size={24} className="text-primary-600 dark:text-primary-400" />
+        )}
+      </div>
+      <div>
+        <h4 className="font-bold text-gray-900 dark:text-white text-base leading-tight">{name || 'Chưa cập nhật'}</h4>
+        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 font-medium bg-gray-100 dark:bg-gray-800 px-2 py-0.5 rounded-md inline-block">
+          {role || 'Vai trò'}
+        </p>
+      </div>
+    </div>
+  );
+}
+
