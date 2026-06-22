@@ -6,18 +6,38 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.stereotype.Repository;
 import java.util.List;
+import java.util.Optional;
 
-public interface ProductRepository extends JpaRepository<Product, Long> {
-
+@Repository
+public interface ProductRepository extends JpaRepository<Product, Integer> {
+    
     @Query("SELECT p FROM Product p WHERE " +
-           "(:search IS NULL OR :search = '' OR " +
-           "LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR " +
-           "LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%'))) " +
-           "ORDER BY p.id DESC")
-    Page<Product> search(@Param("search") String search, Pageable pageable);
+           "(:active IS NULL OR p.active = :active) AND " +
+           "(:categoryId IS NULL OR p.category.id = :categoryId) AND " +
+           "(:brandId IS NULL OR p.brand.id = :brandId) AND " +
+           "(:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Product> findAllWithFilters(@Param("search") String search, 
+                                     @Param("categoryId") Integer categoryId, 
+                                     @Param("brandId") Integer brandId, 
+                                     @Param("active") Boolean active, 
+                                     Pageable pageable);
 
-    List<Product> findAllByOrderByIdDesc();
+    @Query("SELECT p FROM Product p WHERE p.active = true AND (:search IS NULL OR LOWER(p.name) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(p.sku) LIKE LOWER(CONCAT('%', :search, '%')))")
+    Page<Product> searchActiveProducts(@Param("search") String search, Pageable pageable);
 
-    List<Product> findByStockLessThanEqualAndActiveTrue(Integer threshold);
+    @Query("SELECT p FROM Product p WHERE p.active = true ORDER BY p.createdAt DESC")
+    List<Product> findAllActive();
+
+    Optional<Product> findByIdAndActiveTrue(Integer id);
+
+    boolean existsBySku(String sku);
+
+    boolean existsBySkuAndIdNot(String sku, Integer id);
+
+    long countByActiveTrue();
+
+    @Query("SELECT p FROM Product p WHERE p.active = true AND p.stock <= 10")
+    List<Product> findLowStockProducts();
 }

@@ -9,33 +9,53 @@ public class Employee {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
     @Column(nullable = false, length = 150)
     private String name;
 
-    @Column(nullable = false, length = 80)
-    private String role;
+    @Column(length = 100)
+    private String position; // Vị trí công việc
 
-    @Column(length = 30)
+    @Column(length = 50)
+    private String role; // Vai trò
+
+    @Column(length = 20)
     private String phone;
 
-    @Column(length = 150)
+    @Column(length = 100)
     private String email;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "branch_id")
+    private Branch branch;
 
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at")
+    private LocalDateTime updatedAt;
+
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and Setters
+    public Integer getId() { return id; }
+    public void setId(Integer id) { this.id = id; }
 
     public String getName() { return name; }
     public void setName(String name) { this.name = name; }
+
+    public String getPosition() { return position; }
+    public void setPosition(String position) { this.position = position; }
 
     public String getRole() { return role; }
     public void setRole(String role) { this.role = role; }
@@ -46,6 +66,12 @@ public class Employee {
     public String getEmail() { return email; }
     public void setEmail(String email) { this.email = email; }
 
+    public Branch getBranch() { return branch; }
+    public void setBranch(Branch branch) { this.branch = branch; }
+
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
 }

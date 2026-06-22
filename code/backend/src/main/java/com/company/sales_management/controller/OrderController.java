@@ -1,43 +1,68 @@
 package com.company.sales_management.controller;
 
-import com.company.sales_management.dto.OrderDto;
-import com.company.sales_management.dto.PageResponse;
+import com.company.sales_management.dto.request.OrderRequest;
+import com.company.sales_management.dto.response.OrderResponse;
 import com.company.sales_management.service.OrderService;
 import jakarta.validation.Valid;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.HashMap;
+import java.util.Map;
 
 @RestController
 @RequestMapping("/api/orders")
+@CrossOrigin
 public class OrderController {
 
-    private final OrderService orderService;
-
-    public OrderController(OrderService orderService) {
-        this.orderService = orderService;
-    }
+    @Autowired
+    private OrderService orderService;
 
     @GetMapping
-    public PageResponse<OrderDto.SummaryResponse> getAll(
+    public ResponseEntity<Map<String, Object>> getAll(
             @RequestParam(required = false) String search,
             @RequestParam(required = false) String status,
+            @RequestParam(required = false) String startDate,
+            @RequestParam(required = false) String endDate,
             @RequestParam(defaultValue = "1") int page,
-            @RequestParam(defaultValue = "10") int limit) {
-        return orderService.getAll(search, status, page, limit);
+            @RequestParam(defaultValue = "10") int limit,
+            @RequestParam(required = false) Integer size) {
+
+        int pageSize = size != null ? size : limit;
+        int pageIndex = page > 0 ? page - 1 : 0;
+        Pageable pageable = PageRequest.of(pageIndex, pageSize);
+
+        Page<OrderResponse> orderPage = orderService.findAll(search, status, startDate, endDate, pageable);
+
+        Map<String, Object> response = new HashMap<>();
+        response.put("data", orderPage.getContent());
+        response.put("totalPages", orderPage.getTotalPages());
+        response.put("total", orderPage.getTotalElements());
+
+        return ResponseEntity.ok(response);
     }
 
     @GetMapping("/{id}")
-    public OrderDto.Response getById(@PathVariable Long id) {
-        return orderService.getById(id);
+    public ResponseEntity<OrderResponse> getById(@PathVariable Integer id) {
+        return ResponseEntity.ok(orderService.findById(id));
     }
 
     @PostMapping
-    public OrderDto.Response create(@Valid @RequestBody OrderDto.CreateRequest req) {
-        return orderService.create(req);
+    public ResponseEntity<OrderResponse> create(@Valid @RequestBody OrderRequest request) {
+        return ResponseEntity.status(HttpStatus.CREATED).body(orderService.create(request));
     }
 
-    /** FE gọi PUT /orders/{id} với body {status} để cập nhật trạng thái đơn hàng */
     @PutMapping("/{id}")
-    public OrderDto.Response updateStatus(@PathVariable Long id, @RequestBody OrderDto.UpdateStatusRequest req) {
-        return orderService.updateStatus(id, req.status);
+    public ResponseEntity<OrderResponse> updateStatus(@PathVariable Integer id, @RequestBody Map<String, String> body) {
+        String status = body.get("status");
+        if (status == null) {
+            throw new IllegalArgumentException("Trạng thái là bắt buộc");
+        }
+        return ResponseEntity.ok(orderService.updateStatus(id, status));
     }
 }

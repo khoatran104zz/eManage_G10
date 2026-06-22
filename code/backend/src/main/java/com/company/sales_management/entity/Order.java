@@ -1,7 +1,6 @@
 package com.company.sales_management.entity;
 
 import jakarta.persistence.*;
-import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -12,10 +11,9 @@ public class Order {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private Long id;
+    private Integer id;
 
-    /** Mã đơn hàng hiển thị, ví dụ DH00001 */
-    @Column(unique = true, length = 30)
+    @Column(nullable = false, unique = true, length = 50)
     private String code;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -26,23 +24,19 @@ public class Order {
     @JoinColumn(name = "employee_id")
     private Employee employee;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private List<OrderItem> items = new ArrayList<>();
+    @Column(nullable = false)
+    private Double total = 0.0;
 
-    @Column(precision = 18, scale = 2)
-    private BigDecimal discount = BigDecimal.ZERO;
+    @Column(nullable = false)
+    private Double discount = 0.0;
 
-    @Column(nullable = false, precision = 18, scale = 2)
-    private BigDecimal total = BigDecimal.ZERO;
+    @Column(name = "payment_method", nullable = false, length = 20)
+    private String paymentMethod; // 'cash', 'transfer'
 
-    @Column(name = "payment_method", length = 30)
-    private String paymentMethod = "cash";
+    @Column(nullable = false, length = 20)
+    private String status; // 'pending', 'processing', 'completed', 'cancelled'
 
-    /** pending | processing | completed | cancelled */
-    @Column(nullable = false, length = 30)
-    private String status = "pending";
-
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String note;
 
     @Column(name = "created_at", updatable = false)
@@ -51,55 +45,114 @@ public class Order {
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<OrderItem> items = new ArrayList<>();
+
     @PrePersist
     protected void onCreate() {
-        this.createdAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
     }
 
-    public Long getId() { return id; }
-    public void setId(Long id) { this.id = id; }
+    // Getters and Setters
+    public Integer getId() {
+        return id;
+    }
 
-    public String getCode() { return code; }
-    public void setCode(String code) { this.code = code; }
+    public void setId(Integer id) {
+        this.id = id;
+    }
 
-    public Customer getCustomer() { return customer; }
-    public void setCustomer(Customer customer) { this.customer = customer; }
+    public String getCode() {
+        return code;
+    }
 
-    public Employee getEmployee() { return employee; }
-    public void setEmployee(Employee employee) { this.employee = employee; }
+    public void setCode(String code) {
+        this.code = code;
+    }
 
-    public List<OrderItem> getItems() { return items; }
-    public void setItems(List<OrderItem> items) { this.items = items; }
+    public Customer getCustomer() {
+        return customer;
+    }
 
-    public BigDecimal getDiscount() { return discount; }
-    public void setDiscount(BigDecimal discount) { this.discount = discount; }
+    public void setCustomer(Customer customer) {
+        this.customer = customer;
+    }
 
-    public BigDecimal getTotal() { return total; }
-    public void setTotal(BigDecimal total) { this.total = total; }
+    public Employee getEmployee() {
+        return employee;
+    }
 
-    public String getPaymentMethod() { return paymentMethod; }
-    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
+    public void setEmployee(Employee employee) {
+        this.employee = employee;
+    }
 
-    public String getStatus() { return status; }
-    public void setStatus(String status) { this.status = status; }
+    public Double getTotal() {
+        return total;
+    }
 
-    public String getNote() { return note; }
-    public void setNote(String note) { this.note = note; }
+    public void setTotal(Double total) {
+        this.total = total;
+    }
 
-    public LocalDateTime getCreatedAt() { return createdAt; }
-    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    public Double getDiscount() {
+        return discount;
+    }
 
-    public LocalDateTime getUpdatedAt() { return updatedAt; }
-    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    public void setDiscount(Double discount) {
+        this.discount = discount;
+    }
 
-    public void addItem(OrderItem item) {
-        items.add(item);
-        item.setOrder(this);
+    public String getPaymentMethod() {
+        return paymentMethod;
+    }
+
+    public void setPaymentMethod(String paymentMethod) {
+        this.paymentMethod = paymentMethod;
+    }
+
+    public String getStatus() {
+        return status;
+    }
+
+    public void setStatus(String status) {
+        this.status = status;
+    }
+
+    public String getNote() {
+        return note;
+    }
+
+    public void setNote(String note) {
+        this.note = note;
+    }
+
+    public LocalDateTime getCreatedAt() {
+        return createdAt;
+    }
+
+    public void setCreatedAt(LocalDateTime createdAt) {
+        this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
+    }
+
+    public List<OrderItem> getItems() {
+        return items;
+    }
+
+    public void setItems(List<OrderItem> items) {
+        this.items = items;
     }
 }

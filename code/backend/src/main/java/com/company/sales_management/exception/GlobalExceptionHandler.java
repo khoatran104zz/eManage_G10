@@ -7,50 +7,41 @@ import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
+import com.company.sales_management.dto.response.ApiResponse;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.Map;
 
-/**
- * Chuẩn hóa mọi lỗi trả về dạng { "message": "..." } để khớp với
- * interceptor lỗi trong frontend/src/services/api.js:
- *   err => err.response?.data?.message || 'Có lỗi xảy ra'
- */
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFound(NotFoundException ex) {
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errorBody(ex.getMessage()));
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<ApiResponse<Object>> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(response);
     }
 
-    @ExceptionHandler(BusinessException.class)
-    public ResponseEntity<Map<String, String>> handleBusiness(BusinessException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(ex.getMessage()));
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ApiResponse<Object>> handleBadRequestException(BadRequestException ex) {
+        ApiResponse<Object> response = new ApiResponse<>(false, ex.getMessage(), null);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(MethodArgumentNotValidException.class)
-    public ResponseEntity<Map<String, String>> handleValidation(MethodArgumentNotValidException ex) {
-        String message = ex.getBindingResult().getFieldErrors().stream()
-                .findFirst()
-                .map(FieldError::getDefaultMessage)
-                .orElse("Dữ liệu không hợp lệ");
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(message));
-    }
-
-    @ExceptionHandler(IllegalArgumentException.class)
-    public ResponseEntity<Map<String, String>> handleIllegalArgument(IllegalArgumentException ex) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errorBody(ex.getMessage()));
+    public ResponseEntity<ApiResponse<Map<String, String>>> handleValidationException(MethodArgumentNotValidException ex) {
+        Map<String, String> errors = new HashMap<>();
+        ex.getBindingResult().getAllErrors().forEach(error -> {
+            String fieldName = ((FieldError) error).getField();
+            String errorMessage = error.getDefaultMessage();
+            errors.put(fieldName, errorMessage);
+        });
+        ApiResponse<Map<String, String>> response = new ApiResponse<>(false, "Dữ liệu không hợp lệ", errors);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     @ExceptionHandler(Exception.class)
-    public ResponseEntity<Map<String, String>> handleGeneric(Exception ex) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                .body(errorBody("Đã xảy ra lỗi hệ thống: " + ex.getMessage()));
-    }
-
-    private Map<String, String> errorBody(String message) {
-        Map<String, String> body = new HashMap<>();
-        body.put("message", message);
-        return body;
+    public ResponseEntity<ApiResponse<Object>> handleGlobalException(Exception ex) {
+        ApiResponse<Object> response = new ApiResponse<>(false, "Lỗi hệ thống: " + ex.getMessage(), null);
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
 }
