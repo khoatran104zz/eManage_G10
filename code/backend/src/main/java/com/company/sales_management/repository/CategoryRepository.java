@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface CategoryRepository extends JpaRepository<Category, Integer> {
     
-    @Query("SELECT c FROM Category c WHERE :search IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) ORDER BY c.createdAt DESC")
+    @Query("SELECT c FROM Category c WHERE CAST(:search AS string) IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) ORDER BY c.createdAt DESC")
     List<Category> searchCategories(@Param("search") String search);
 
     List<Category> findByNameContainingIgnoreCase(String name);

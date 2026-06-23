@@ -13,10 +13,10 @@ import java.util.Optional;
 @Repository
 public interface CustomerRepository extends JpaRepository<Customer, Integer> {
     
-    @Query("SELECT c FROM Customer c WHERE :search IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) OR c.phone LIKE CONCAT('%', :search, '%') ORDER BY c.createdAt DESC")
+    @Query("SELECT c FROM Customer c WHERE CAST(:search AS string) IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR c.phone LIKE CONCAT('%', CAST(:search AS string), '%') ORDER BY c.createdAt DESC")
     List<Customer> searchCustomers(@Param("search") String search);
 
-    @Query("SELECT c FROM Customer c WHERE :search IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%')) OR c.phone LIKE CONCAT('%', :search, '%')")
+    @Query("SELECT c FROM Customer c WHERE CAST(:search AS string) IS NULL OR LOWER(c.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR c.phone LIKE CONCAT('%', CAST(:search AS string), '%')")
     Page<Customer> findBySearchTerm(@Param("search") String search, Pageable pageable);
 
     Optional<Customer> findByPhone(String phone);

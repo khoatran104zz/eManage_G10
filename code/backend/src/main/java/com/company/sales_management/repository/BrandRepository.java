@@ -10,7 +10,7 @@ import java.util.List;
 @Repository
 public interface BrandRepository extends JpaRepository<Brand, Integer> {
     
-    @Query("SELECT b FROM Brand b WHERE :search IS NULL OR LOWER(b.name) LIKE LOWER(CONCAT('%', :search, '%')) ORDER BY b.createdAt DESC")
+    @Query("SELECT b FROM Brand b WHERE CAST(:search AS string) IS NULL OR LOWER(b.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) ORDER BY b.createdAt DESC")
     List<Brand> searchBrands(@Param("search") String search);
 
     List<Brand> findByNameContainingIgnoreCase(String name);

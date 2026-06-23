@@ -20,7 +20,7 @@ function getHomePath(role: string) {
     case 'INVENTORY_STAFF':
       return '/stock';
     case 'ACCOUNTANT':
-      return '/tax';
+      return '/reports';
     case 'CUSTOMER':
       return '/customer';
     default:

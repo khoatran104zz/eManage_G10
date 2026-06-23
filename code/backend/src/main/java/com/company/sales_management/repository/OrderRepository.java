@@ -14,7 +14,7 @@ import java.util.List;
 public interface OrderRepository extends JpaRepository<Order, Integer> {
     
     @Query("SELECT o FROM Order o LEFT JOIN o.customer c WHERE " +
-           "(:search IS NULL OR LOWER(o.code) LIKE LOWER(CONCAT('%', :search, '%')) OR LOWER(c.name) LIKE LOWER(CONCAT('%', :search, '%'))) " +
+           "(CAST(:search AS string) IS NULL OR LOWER(o.code) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR LOWER(c.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%'))) " +
            "AND (:status IS NULL OR o.status = :status) " +
            "AND (:startDate IS NULL OR o.createdAt >= :startDate) " +
            "AND (:endDate IS NULL OR o.createdAt <= :endDate)")

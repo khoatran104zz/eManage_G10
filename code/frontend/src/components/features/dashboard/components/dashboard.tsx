@@ -30,8 +30,10 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 export default function Dashboard() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [mounted, setMounted] = useState<boolean>(false);
 
   useEffect(() => {
+    setMounted(true);
     dashboardService.get()
       .then(setData)
       .catch((err) => console.error(err))
@@ -76,21 +78,23 @@ export default function Dashboard() {
             </span>
           </div>
           <div className="w-full" style={{ minHeight: '220px' }}>
-            <ResponsiveContainer width="100%" height={220}>
-              <AreaChart data={monthlyRevenue}>
-                <defs>
-                  <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#00A84F" stopOpacity={0.25} />
-                    <stop offset="95%" stopColor="#00A84F" stopOpacity={0} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eef2f8" />
-                <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={v => (v / 1000000).toFixed(0) + 'tr'} axisLine={false} tickLine={false} />
-                <Tooltip content={<CustomTooltip />} />
-                <Area type="monotone" dataKey="revenue" stroke="#00A84F" strokeWidth={2.5} fill="url(#revenueGrad)" dot={{ r: 4, fill: '#00A84F', strokeWidth: 2, stroke: '#fff' }} />
-              </AreaChart>
-            </ResponsiveContainer>
+            {mounted && (
+              <ResponsiveContainer width="100%" height={220}>
+                <AreaChart data={monthlyRevenue}>
+                  <defs>
+                    <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#00A84F" stopOpacity={0.25} />
+                      <stop offset="95%" stopColor="#00A84F" stopOpacity={0} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eef2f8" />
+                  <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <YAxis tick={{ fontSize: 11, fill: '#9ca3af' }} tickFormatter={v => (v / 1000000).toFixed(0) + 'tr'} axisLine={false} tickLine={false} />
+                  <Tooltip content={<CustomTooltip />} />
+                  <Area type="monotone" dataKey="revenue" stroke="#00A84F" strokeWidth={2.5} fill="url(#revenueGrad)" dot={{ r: 4, fill: '#00A84F', strokeWidth: 2, stroke: '#fff' }} />
+                </AreaChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
 
@@ -98,16 +102,18 @@ export default function Dashboard() {
           <h2 className="font-bold text-gray-900 dark:text-white text-sm mb-1">Top sản phẩm bán chạy</h2>
           <p className="text-xs text-gray-400 mb-4">Theo số lượng đã bán</p>
           <div className="w-full" style={{ minHeight: '210px' }}>
-            <ResponsiveContainer width="100%" height={210}>
-              <BarChart data={topProducts} layout="vertical">
-                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#eef2f8" />
-                <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
-                <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#6b7280' }} width={80}
-                  tickFormatter={v => v.length > 10 ? v.substring(0, 10) + '...' : v} axisLine={false} tickLine={false} />
-                <Tooltip formatter={(v) => [`${v} sản phẩm`, 'Đã bán']} cursor={{ fill: '#f7f9fc' }} />
-                <Bar dataKey="quantity" fill="#00A84F" radius={[0, 6, 6, 0]} barSize={14} />
-              </BarChart>
-            </ResponsiveContainer>
+            {mounted && (
+              <ResponsiveContainer width="100%" height={210}>
+                <BarChart data={topProducts} layout="vertical">
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#eef2f8" />
+                  <XAxis type="number" tick={{ fontSize: 11, fill: '#9ca3af' }} axisLine={false} tickLine={false} />
+                  <YAxis dataKey="name" type="category" tick={{ fontSize: 10, fill: '#6b7280' }} width={80}
+                    tickFormatter={v => v.length > 10 ? v.substring(0, 10) + '...' : v} axisLine={false} tickLine={false} />
+                  <Tooltip formatter={(v) => [`${v} sản phẩm`, 'Đã bán']} cursor={{ fill: '#f7f9fc' }} />
+                  <Bar dataKey="quantity" fill="#00A84F" radius={[0, 6, 6, 0]} barSize={14} />
+                </BarChart>
+              </ResponsiveContainer>
+            )}
           </div>
         </div>
       </div>

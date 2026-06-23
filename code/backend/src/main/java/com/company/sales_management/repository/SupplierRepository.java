@@ -12,9 +12,9 @@ import java.util.List;
 @Repository
 public interface SupplierRepository extends JpaRepository<Supplier, Integer> {
     
-    @Query("SELECT s FROM Supplier s WHERE :search IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :search, '%')) OR s.phone LIKE CONCAT('%', :search, '%') ORDER BY s.createdAt DESC")
+    @Query("SELECT s FROM Supplier s WHERE CAST(:search AS string) IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR s.phone LIKE CONCAT('%', CAST(:search AS string), '%') ORDER BY s.createdAt DESC")
     List<Supplier> searchSuppliers(@Param("search") String search);
 
-    @Query("SELECT s FROM Supplier s WHERE :search IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', :search, '%')) OR s.phone LIKE CONCAT('%', :search, '%')")
+    @Query("SELECT s FROM Supplier s WHERE CAST(:search AS string) IS NULL OR LOWER(s.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR s.phone LIKE CONCAT('%', CAST(:search AS string), '%')")
     Page<Supplier> findBySearchTerm(@Param("search") String search, Pageable pageable);
 }

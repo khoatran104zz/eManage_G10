@@ -75,13 +75,7 @@ export const menuConfig: MenuItem[] = [
     title: 'Báo cáo',
     path: '/reports',
     icon: 'BarChart3',
-    roles: ['ADMIN', 'BRANCH_MANAGER'],
-  },
-  {
-    title: 'Thuế & Kế toán',
-    path: '/tax',
-    icon: 'Percent',
-    roles: ['ADMIN', 'ACCOUNTANT'],
+    roles: ['ADMIN', 'BRANCH_MANAGER', 'ACCOUNTANT'],
   },
   {
     title: 'Hồ sơ của tôi',

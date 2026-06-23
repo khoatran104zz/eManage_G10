@@ -12,11 +12,11 @@ import java.util.List;
 @Repository
 public interface EmployeeRepository extends JpaRepository<Employee, Integer> {
     
-    @Query("SELECT e FROM Employee e WHERE :search IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', :search, '%')) OR e.phone LIKE CONCAT('%', :search, '%') ORDER BY e.createdAt DESC")
+    @Query("SELECT e FROM Employee e WHERE CAST(:search AS string) IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR e.phone LIKE CONCAT('%', CAST(:search AS string), '%') ORDER BY e.createdAt DESC")
     List<Employee> searchEmployees(@Param("search") String search);
 
     @Query("SELECT e FROM Employee e WHERE " +
-           "(:search IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', :search, '%')) OR e.phone LIKE CONCAT('%', :search, '%')) AND " +
+           "(CAST(:search AS string) IS NULL OR LOWER(e.name) LIKE LOWER(CONCAT('%', CAST(:search AS string), '%')) OR e.phone LIKE CONCAT('%', CAST(:search AS string), '%')) AND " +
            "(:branchId IS NULL OR e.branch.id = :branchId)")
     Page<Employee> findAllWithFilters(@Param("search") String search, @Param("branchId") Integer branchId, Pageable pageable);
 }

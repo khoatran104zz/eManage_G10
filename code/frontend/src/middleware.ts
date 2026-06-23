@@ -15,13 +15,10 @@ const ROUTE_ROLES = [
   { pattern: /^\/customers/, roles: ['ADMIN', 'BRANCH_MANAGER'] },
   { pattern: /^\/suppliers/, roles: ['ADMIN', 'BRANCH_MANAGER'] },
   { pattern: /^\/employees/, roles: ['ADMIN', 'BRANCH_MANAGER'] },
-  { pattern: /^\/reports/, roles: ['ADMIN', 'BRANCH_MANAGER'] },
+  { pattern: /^\/reports/, roles: ['ADMIN', 'BRANCH_MANAGER', 'ACCOUNTANT'] },
   
   { pattern: /^\/orders/, roles: ['ADMIN', 'BRANCH_MANAGER', 'CASHIER'] },
   { pattern: /^\/pos/, roles: ['ADMIN', 'CASHIER'] },
-  
-  { pattern: /^\/tax/, roles: ['ADMIN', 'ACCOUNTANT'] },
-  { pattern: /^\/finance/, roles: ['ADMIN', 'ACCOUNTANT'] },
   
   { pattern: /^\/customer/, roles: ['CUSTOMER'] },
 ];
@@ -37,7 +34,7 @@ function getHomePath(role: string) {
     case 'INVENTORY_STAFF':
       return '/stock';
     case 'ACCOUNTANT':
-      return '/tax';
+      return '/reports';
     case 'CUSTOMER':
       return '/customer';
     default:

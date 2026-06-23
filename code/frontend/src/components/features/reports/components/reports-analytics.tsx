@@ -7,9 +7,10 @@ import {
 } from 'recharts';
 import { dashboardService, stockService } from '@/services';
 import { formatCurrency, formatNumber } from '@/utils/format';
-import { PageHeader, Loading } from '@/components/base';
-import { TrendingUp, Package, ShoppingCart, Users } from 'lucide-react';
+import { PageHeader, Loading, Table, StatCard, toast } from '@/components/base';
+import { TrendingUp, Package, ShoppingCart, Users, Percent, DollarSign, FileText, CheckCircle, Search } from 'lucide-react';
 import { DashboardData, Product, TopProduct } from '@/types';
+import { useAuthStore } from '@/store/use-auth-store';
 
 const COLORS = ['#00A84F', '#0BC5A4', '#f59e0b', '#8b5cf6', '#f43f5e'];
 
@@ -24,6 +25,25 @@ interface CustomTooltipProps {
   payload?: TooltipPayloadItem[];
   label?: string;
 }
+
+interface TaxInvoice {
+  id: number;
+  code: string;
+  date: string;
+  customer: string;
+  amount: number;
+  vatRate: number;
+  vatAmount: number;
+  status: 'Đã kê khai' | 'Chờ kê khai';
+}
+
+const TAX_INVOICES: TaxInvoice[] = [
+  { id: 1, code: 'HD00192', date: '2026-06-18', customer: 'Nguyễn Văn A', amount: 15000000, vatRate: 10, vatAmount: 1500000, status: 'Đã kê khai' },
+  { id: 2, code: 'HD00193', date: '2026-06-19', customer: 'Công ty TNHH Hoàng Phát', amount: 45000000, vatRate: 10, vatAmount: 4500000, status: 'Đã kê khai' },
+  { id: 3, code: 'HD00194', date: '2026-06-20', customer: 'Trần Thị B', amount: 8500000, vatRate: 8, vatAmount: 680000, status: 'Chờ kê khai' },
+  { id: 4, code: 'HD00195', date: '2026-06-20', customer: 'Lê Văn C', amount: 12000000, vatRate: 10, vatAmount: 1200000, status: 'Đã kê khai' },
+  { id: 5, code: 'HD00196', date: '2026-06-20', customer: 'Cửa hàng Bách Hóa Xanh', amount: 32000000, vatRate: 8, vatAmount: 2560000, status: 'Chờ kê khai' },
+];
 
 const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
   if (active && payload?.length) {
@@ -42,11 +62,23 @@ const CustomTooltip = ({ active, payload, label }: CustomTooltipProps) => {
 };
 
 export default function ReportsAnalytics() {
+  const { user } = useAuthStore();
+  const userRole = user?.role || 'ADMIN';
+  const isAccountant = userRole === 'ACCOUNTANT';
+
+  const [activeTab, setActiveTab] = useState(isAccountant ? 'tax' : 'sales');
   const [data, setData] = useState<DashboardData | null>(null);
   const [stock, setStock] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mounted, setMounted] = useState(false);
+
+  // Tax States
+  const [taxRate, setTaxRate] = useState('10');
+  const [taxYear, setTaxYear] = useState('2026');
+  const [taxSearch, setTaxSearch] = useState('');
 
   useEffect(() => {
+    setMounted(true);
     Promise.all([dashboardService.get(), stockService.getAll()])
       .then(([d, s]) => {
         setData(d);
@@ -72,155 +104,349 @@ export default function ReportsAnalytics() {
   });
   const categoryData = Object.entries(categoryMap).map(([name, value]) => ({ name, value }));
 
+  const filteredInvoices = TAX_INVOICES.filter(
+    (inv) =>
+      inv.code.toLowerCase().includes(taxSearch.toLowerCase()) ||
+      inv.customer.toLowerCase().includes(taxSearch.toLowerCase())
+  );
+
+  const handleSaveTaxConfig = (e: React.FormEvent) => {
+    e.preventDefault();
+    toast(`Đã cập nhật cấu hình thuế suất mặc định thành ${taxRate}%`);
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 animate-fadeIn">
       <PageHeader 
         title="Báo cáo" 
-        subtitle="Phân tích dữ liệu kinh doanh"
-        breadcrumb={['Báo cáo', 'Thống kê doanh số']} 
+        subtitle={activeTab === 'sales' ? 'Phân tích dữ liệu kinh doanh' : 'Quản lý thuế giá trị gia tăng, hóa đơn VAT và báo cáo tài chính cửa hàng'}
+        breadcrumb={activeTab === 'sales' ? ['Báo cáo', 'Thống kê doanh số'] : ['Báo cáo', 'Thuế & Kế toán']} 
       />
 
-      {/* Summary stats */}
-      <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
-        {[
-          { label: 'Tổng doanh thu', value: formatCurrency(stats.totalRevenue), icon: TrendingUp, color: 'text-primary-600', bg: 'bg-primary-50 dark:bg-primary-900/20' },
-          { label: 'Tổng đơn hàng', value: formatNumber(stats.totalOrders), icon: ShoppingCart, color: 'text-accent-600', bg: 'bg-accent-50 dark:bg-accent-900/20' },
-          { label: 'Khách hàng', value: formatNumber(stats.totalCustomers), icon: Users, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
-          { label: 'Sản phẩm', value: formatNumber(stats.totalProducts), icon: Package, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-900/20' },
-        ].map((s, i) => (
-          <div key={i} className="card p-5 flex items-center gap-4">
-            <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
-              <s.icon size={20} className={s.color} />
-            </div>
-            <div>
-              <p className="text-xs text-gray-500">{s.label}</p>
-              <p className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{s.value}</p>
+      {/* Tab Switcher (hidden for Accountant who can only view Tax) */}
+      {!isAccountant && (
+        <div className="flex bg-gray-100 dark:bg-gray-800 p-1.5 rounded-2xl w-fit gap-1 select-none">
+          <button
+            onClick={() => setActiveTab('sales')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'sales'
+                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'
+            }`}
+          >
+            Doanh số & Tồn kho
+          </button>
+          <button
+            onClick={() => setActiveTab('tax')}
+            className={`px-5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
+              activeTab === 'tax'
+                ? 'bg-white dark:bg-gray-700 text-primary-600 dark:text-primary-400 shadow-sm'
+                : 'text-gray-500 hover:text-gray-800 dark:hover:text-gray-300'
+            }`}
+          >
+            Thuế & Kế toán
+          </button>
+        </div>
+      )}
+
+      {activeTab === 'sales' ? (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Summary stats */}
+          <div className="grid grid-cols-2 xl:grid-cols-4 gap-4">
+            {[
+              { label: 'Tổng doanh thu', value: formatCurrency(stats.totalRevenue), icon: TrendingUp, color: 'text-primary-600', bg: 'bg-primary-50 dark:bg-primary-900/20' },
+              { label: 'Tổng đơn hàng', value: formatNumber(stats.totalOrders), icon: ShoppingCart, color: 'text-accent-600', bg: 'bg-accent-50 dark:bg-accent-900/20' },
+              { label: 'Khách hàng', value: formatNumber(stats.totalCustomers), icon: Users, color: 'text-purple-600', bg: 'bg-purple-50 dark:bg-purple-900/20' },
+              { label: 'Sản phẩm', value: formatNumber(stats.totalProducts), icon: Package, color: 'text-orange-600', bg: 'bg-orange-50 dark:bg-orange-900/20' },
+            ].map((s, i) => (
+              <div key={i} className="card p-5 flex items-center gap-4">
+                <div className={`w-11 h-11 rounded-xl ${s.bg} flex items-center justify-center shrink-0`}>
+                  <s.icon size={20} className={s.color} />
+                </div>
+                <div>
+                  <p className="text-xs text-gray-500">{s.label}</p>
+                  <p className="text-xl font-bold text-gray-900 dark:text-white mt-0.5">{s.value}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Revenue chart */}
+          <div className="card p-5">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-5">Doanh thu theo tháng</h2>
+            <div className="w-full h-[280px]">
+              {mounted && (
+                <ResponsiveContainer width="100%" height="100%">
+                  <AreaChart data={monthlyRevenue}>
+                    <defs>
+                      <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%" stopColor="#00A84F" stopOpacity={0.15} />
+                        <stop offset="95%" stopColor="#00A84F" stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.4} />
+                    <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} />
+                    <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} tickFormatter={v => (v / 1000000).toFixed(0) + 'tr'} />
+                    <Tooltip content={<CustomTooltip />} />
+                    <Area 
+                      type="monotone" 
+                      dataKey="revenue" 
+                      name="Doanh thu" 
+                      stroke="#00A84F" 
+                      strokeWidth={2.5} 
+                      fill="url(#rev)" 
+                      dot={{ r: 5, fill: '#00A84F', strokeWidth: 2, stroke: '#fff' }} 
+                    />
+                  </AreaChart>
+                </ResponsiveContainer>
+              )}
             </div>
           </div>
-        ))}
-      </div>
 
-      {/* Revenue chart */}
-      <div className="card p-5">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-5">Doanh thu theo tháng</h2>
-        <div className="w-full h-[280px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <AreaChart data={monthlyRevenue}>
-              <defs>
-                <linearGradient id="rev" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="#00A84F" stopOpacity={0.15} />
-                  <stop offset="95%" stopColor="#00A84F" stopOpacity={0} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.4} />
-              <XAxis dataKey="month" tick={{ fontSize: 12, fill: '#6b7280' }} />
-              <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} tickFormatter={v => (v / 1000000).toFixed(0) + 'tr'} />
-              <Tooltip content={<CustomTooltip />} />
-              <Area 
-                type="monotone" 
-                dataKey="revenue" 
-                name="Doanh thu" 
-                stroke="#00A84F" 
-                strokeWidth={2.5} 
-                fill="url(#rev)" 
-                dot={{ r: 5, fill: '#00A84F', strokeWidth: 2, stroke: '#fff' }} 
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </div>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {/* Top products */}
+            <div className="card p-5">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-5">Top sản phẩm bán chạy</h2>
+              <div className="w-full h-[260px]">
+                {mounted && (
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={topProducts}>
+                      <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.4} />
+                      <XAxis 
+                        dataKey="name" 
+                        tick={{ fontSize: 10, fill: '#6b7280' }} 
+                        tickFormatter={v => v.length > 12 ? v.substring(0, 12) + '...' : v} 
+                      />
+                      <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
+                      <Tooltip content={<CustomTooltip />} />
+                      <Bar dataKey="quantity" name="Số lượng bán" fill="#00A84F" radius={[6, 6, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                )}
+              </div>
+            </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
-        {/* Top products */}
-        <div className="card p-5">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-5">Top sản phẩm bán chạy</h2>
-          <div className="w-full h-[260px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={topProducts}>
-                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.4} />
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 10, fill: '#6b7280' }} 
-                  tickFormatter={v => v.length > 12 ? v.substring(0, 12) + '...' : v} 
-                />
-                <YAxis tick={{ fontSize: 11, fill: '#6b7280' }} />
-                <Tooltip content={<CustomTooltip />} />
-                <Bar dataKey="quantity" name="Số lượng bán" fill="#00A84F" radius={[6, 6, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {/* Category distribution */}
+            <div className="card p-5">
+              <h2 className="font-semibold text-gray-900 dark:text-white mb-5">Giá trị tồn kho theo danh mục</h2>
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="w-full sm:w-[50%] h-[220px]">
+                  {mounted && (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <PieChart>
+                        <Pie 
+                          data={categoryData} 
+                          cx="50%" 
+                          cy="50%" 
+                          innerRadius={55} 
+                          outerRadius={90}
+                          dataKey="value" 
+                          paddingAngle={3}
+                        >
+                          {categoryData.map((_, i) => (
+                            <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip formatter={v => formatCurrency(Number(v))} />
+                      </PieChart>
+                    </ResponsiveContainer>
+                  )}
+                </div>
+                <div className="flex-1 space-y-2 w-full">
+                  {categoryData.map((c, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <div 
+                        className="w-2.5 h-2.5 rounded-full shrink-0" 
+                        style={{ background: COLORS[i % COLORS.length] }} 
+                      />
+                      <div className="flex-1 min-w-0">
+                        <p className="text-xs text-gray-700 dark:text-gray-300 truncate">{c.name}</p>
+                        <p className="text-xs text-gray-500 font-medium">{formatCurrency(c.value)}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Top products revenue table */}
+          <div className="card p-5">
+            <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Chi tiết doanh thu sản phẩm</h2>
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b border-gray-200 dark:border-gray-800">
+                    <th className="pb-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">#</th>
+                    <th className="pb-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Sản phẩm</th>
+                    <th className="pb-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Đã bán</th>
+                    <th className="pb-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Doanh thu</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {topProducts.map((p: TopProduct & { revenue?: number }, i: number) => (
+                    <tr key={i} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
+                      <td className="py-3 pr-4 text-gray-400 font-mono text-xs">{String(i + 1).padStart(2, '0')}</td>
+                      <td className="py-3 font-medium text-gray-900 dark:text-white">{p.name}</td>
+                      <td className="py-3 text-right text-gray-600 dark:text-gray-400">{p.quantity} sp</td>
+                      <td className="py-3 text-right font-semibold text-primary-600 dark:text-primary-400">
+                        {formatCurrency(p.revenue || p.quantity * 100000)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
+      ) : (
+        <div className="space-y-6 animate-fadeIn">
+          {/* Grid Stats */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
+            <StatCard
+              title="Doanh thu tính thuế"
+              value={formatCurrency(112500000)}
+              icon={DollarSign}
+              gradient="blue"
+            />
+            <StatCard
+              title="Thuế VAT đầu ra (Đã bán)"
+              value={formatCurrency(10440000)}
+              icon={Percent}
+              gradient="green"
+            />
+            <StatCard
+              title="Thuế VAT đầu vào (Khấu trừ)"
+              value={formatCurrency(4200000)}
+              icon={FileText}
+              gradient="purple"
+            />
+            <StatCard
+              title="Thuế VAT phải nộp ròng"
+              value={formatCurrency(6240000)}
+              icon={CheckCircle}
+              gradient="orange"
+            />
+          </div>
 
-        {/* Category distribution */}
-        <div className="card p-5">
-          <h2 className="font-semibold text-gray-900 dark:text-white mb-5">Giá trị tồn kho theo danh mục</h2>
-          <div className="flex flex-col sm:flex-row items-center gap-4">
-            <div className="w-full sm:w-[50%] h-[220px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie 
-                    data={categoryData} 
-                    cx="50%" 
-                    cy="50%" 
-                    innerRadius={55} 
-                    outerRadius={90}
-                    dataKey="value" 
-                    paddingAngle={3}
-                  >
-                    {categoryData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={v => formatCurrency(Number(v))} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-            <div className="flex-1 space-y-2 w-full">
-              {categoryData.map((c, i) => (
-                <div key={i} className="flex items-center gap-2">
-                  <div 
-                    className="w-2.5 h-2.5 rounded-full shrink-0" 
-                    style={{ background: COLORS[i % COLORS.length] }} 
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="text-xs text-gray-700 dark:text-gray-300 truncate">{c.name}</p>
-                    <p className="text-xs text-gray-500 font-medium">{formatCurrency(c.value)}</p>
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Left Side: Invoice table */}
+            <div className="lg:col-span-2 space-y-4">
+              <div className="card p-6">
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-5 border-b border-gray-100 dark:border-gray-800 pb-4">
+                  <div>
+                    <h3 className="font-bold text-gray-900 dark:text-white text-base">Hóa đơn VAT phát sinh</h3>
+                    <p className="text-xs text-gray-500">Danh sách các hóa đơn bán hàng chịu thuế trong kỳ</p>
+                  </div>
+
+                  {/* Search Invoice */}
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      className="input pl-9 py-1.5 text-xs w-48"
+                      placeholder="Mã HĐ hoặc khách hàng..."
+                      value={taxSearch}
+                      onChange={(e) => setTaxSearch(e.target.value)}
+                    />
                   </div>
                 </div>
-              ))}
+
+                <Table headers={['Mã hóa đơn', 'Ngày', 'Khách hàng', 'Giá trị trước thuế', 'Mức thuế', 'Tiền thuế VAT', 'Trạng thái']}>
+                  {filteredInvoices.length === 0 ? (
+                    <tr>
+                      <td colSpan={7} className="text-center py-6 text-xs text-gray-400">
+                        Không tìm thấy hóa đơn nào phù hợp.
+                      </td>
+                    </tr>
+                  ) : (
+                    filteredInvoices.map((inv) => (
+                      <tr key={inv.id} className="table-row">
+                        <td className="px-4 py-3 font-semibold text-gray-900 dark:text-white text-xs">{inv.code}</td>
+                        <td className="px-4 py-3 text-right text-xs text-gray-500">{inv.date}</td>
+                        <td className="px-4 py-3 text-right text-xs text-gray-700 dark:text-gray-300 font-medium">{inv.customer}</td>
+                        <td className="px-4 py-3 text-right text-xs font-semibold text-gray-900 dark:text-white">{formatCurrency(inv.amount)}</td>
+                        <td className="px-4 py-3 text-right text-xs text-gray-500 font-mono">{inv.vatRate}%</td>
+                        <td className="px-4 py-3 text-right text-xs font-bold text-primary-600 dark:text-primary-400">{formatCurrency(inv.vatAmount)}</td>
+                        <td className="px-4 py-3 text-right">
+                          <span
+                            className={`badge ${
+                              inv.status === 'Đã kê khai' ? 'badge-green' : 'badge-yellow'
+                            }`}
+                          >
+                            {inv.status}
+                          </span>
+                        </td>
+                      </tr>
+                    ))
+                  )}
+                </Table>
+              </div>
+            </div>
+
+            {/* Right Side: Config tax & Reports */}
+            <div className="space-y-6">
+              <div className="card p-6">
+                <h3 className="font-bold text-gray-900 dark:text-white text-base mb-4 flex items-center gap-2">
+                  <Percent size={18} className="text-primary-600 dark:text-primary-400" />
+                  Thiết lập Thuế suất
+                </h3>
+
+                <form onSubmit={handleSaveTaxConfig} className="space-y-4">
+                  <div>
+                    <label className="label text-xs">Thuế suất VAT mặc định</label>
+                    <select
+                      className="input text-sm"
+                      value={taxRate}
+                      onChange={(e) => setTaxRate(e.target.value)}
+                    >
+                      <option value="0">0% (Miễn thuế)</option>
+                      <option value="5">5% (Thuế suất ưu đãi)</option>
+                      <option value="8">8% (Thuế suất giảm theo NQ)</option>
+                      <option value="10">10% (Thuế suất chuẩn)</option>
+                    </select>
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Thuế suất này được áp dụng tự động cho các sản phẩm chưa thiết lập mức thuế riêng biệt.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="label text-xs">Kỳ tính thuế hiện tại</label>
+                    <select
+                      className="input text-sm"
+                      value={taxYear}
+                      onChange={(e) => setTaxYear(e.target.value)}
+                    >
+                      <option value="2025">Năm 2025</option>
+                      <option value="2026">Năm 2026</option>
+                    </select>
+                  </div>
+
+                  <button type="submit" className="w-full btn btn-primary py-2.5 font-bold text-xs cursor-pointer">
+                    Cập nhật cấu hình
+                  </button>
+                </form>
+              </div>
+
+              <div className="card p-6 bg-gradient-to-br from-primary-50 to-emerald-50 dark:from-gray-900/40 dark:to-emerald-950/10 border border-primary-100 dark:border-primary-900/30">
+                <h4 className="font-bold text-primary-800 dark:text-primary-400 text-sm mb-2">Tải Báo cáo Thuế</h4>
+                <p className="text-xs text-gray-600 dark:text-gray-400 mb-4 leading-relaxed">
+                  Kết xuất biểu mẫu báo cáo thuế VAT đầu ra, VAT đầu vào theo Tờ khai 01/GTGT phục vụ quyết toán thuế.
+                </p>
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => toast('Đã tải tờ khai thuế VAT')}
+                    className="btn btn-primary text-xs flex-1 justify-center py-2 cursor-pointer"
+                  >
+                    Xuất file Excel
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-
-      {/* Top products revenue table */}
-      <div className="card p-5">
-        <h2 className="font-semibold text-gray-900 dark:text-white mb-4">Chi tiết doanh thu sản phẩm</h2>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-800">
-                <th className="pb-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">#</th>
-                <th className="pb-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Sản phẩm</th>
-                <th className="pb-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Đã bán</th>
-                <th className="pb-3 text-right text-xs font-semibold text-gray-500 uppercase tracking-wide">Doanh thu</th>
-              </tr>
-            </thead>
-            <tbody>
-              {topProducts.map((p: TopProduct & { revenue?: number }, i: number) => (
-                <tr key={i} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
-                  <td className="py-3 pr-4 text-gray-400 font-mono text-xs">{String(i + 1).padStart(2, '0')}</td>
-                  <td className="py-3 font-medium text-gray-900 dark:text-white">{p.name}</td>
-                  <td className="py-3 text-right text-gray-600 dark:text-gray-400">{p.quantity} sp</td>
-                  <td className="py-3 text-right font-semibold text-primary-600 dark:text-primary-400">
-                    {formatCurrency(p.revenue || p.quantity * 100000) /* Safe fallback matching visual specs */}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
