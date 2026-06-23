@@ -1,14 +1,17 @@
 const { spawn } = require("node:child_process");
+const fs = require("node:fs");
 const path = require("node:path");
 const readline = require("node:readline");
 
 const rootDir = __dirname;
-const systemRoot = process.env.SystemRoot || "C:\\Windows";
+const systemRoot = process.env.SystemRoot || process.env.windir || "C:\\Windows";
 const system32 = path.join(systemRoot, "System32");
-const powershell = path.join(system32, "WindowsPowerShell", "v1.0", "powershell.exe");
+const cmd = [process.env.ComSpec, path.join(system32, "cmd.exe"), "cmd.exe"]
+  .filter(Boolean)
+  .find((candidate) => candidate === "cmd.exe" || fs.existsSync(candidate));
 const baseEnv = {
   ...process.env,
-  ComSpec: path.join(system32, "cmd.exe"),
+  ComSpec: cmd,
   PATH: `${system32};${process.env.PATH || ""}`,
 };
 
@@ -17,12 +20,12 @@ const processes = [
     name: "BACKEND",
     color: "\x1b[32m",
     cwd: path.join(rootDir, "code", "backend"),
-    command: ".\\mvnw spring-boot:run",
+    command: "mvn spring-boot:run",
   },
   {
     name: "FRONTEND",
     color: "\x1b[36m",
-    cwd: path.join(rootDir, "code", "next-frontend"),
+    cwd: path.join(rootDir, "code", "frontend"),
     command: "npm.cmd run dev",
   },
 ];
@@ -53,8 +56,8 @@ function stopAll(exitCode = 0) {
 
 for (const proc of processes) {
   const child = spawn(
-    powershell,
-    ["-NoProfile", "-ExecutionPolicy", "Bypass", "-Command", proc.command],
+    cmd,
+    ["/d", "/s", "/c", proc.command],
     {
       cwd: proc.cwd,
       env: baseEnv,
